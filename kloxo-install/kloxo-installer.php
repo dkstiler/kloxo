@@ -83,7 +83,7 @@ function lxins_main()
 	print("Installing LxCenter yum repository for updates\n");
 	install_yum_repo($osversion);
 
-	$packages = array("sendmail", "sendmail-cf", "sendmail-doc", "sendmail-devel", "exim", "vsftpd", "postfix", "vpopmail", "qmail", "lxphp", "lxzend", "pure-ftpd", "imap");
+	$packages = array("sendmail", "sendmail-cf", "sendmail-doc", "sendmail-devel", "exim", "vsftpd", "postfix", "vpopmail", "qmail", "kloxo-core-php", "lxphp" ,"lxzend", "pure-ftpd", "imap");
 
 	$list = implode(" ", $packages);
 	print("Removing packages $list...\n");
@@ -91,7 +91,7 @@ function lxins_main()
 		exec("rpm -e --nodeps $package > /dev/null 2>&1");
 	}
 
-	$packages = array("php-mbstring", "php-mysql", "which", "gcc-c++", "php-imap", "php-pear", "php-devel", "lxlighttpd", "httpd", "mod_ssl", "zip", "unzip", "lxphp", "lxzend", "mysql", "mysql-server", "curl", "autoconf", "automake", "libtool", "bogofilter", "gcc", "cpp", "openssl", "pure-ftpd", "yum-protectbase");
+	$packages = array("php-mbstring", "php-mysql", "which", "gcc-c++", "php-imap", "php-pear", "php-devel", "lxlighttpd", "httpd", "mod_ssl", "zip", "unzip", "kloxo-core-php", "mysql", "mysql-server", "curl", "autoconf", "automake", "libtool", "bogofilter", "gcc", "cpp", "openssl", "pure-ftpd", "yum-protectbase");
 
 	$list = implode(" ", $packages);
 
@@ -178,9 +178,14 @@ function lxins_main()
 		else {
 			chdir("/usr/local/lxlabs/kloxo");
 			system("mkdir -p /usr/local/lxlabs/kloxo/log");
-			@ unlink("/usr/local/lxlabs/kloxo/kloxo-current.zip");
-			print("Downloading latest Kloxo release\n");
-			system("wget {$downloadserver}download/kloxo/production/kloxo/kloxo-current.zip");
+			if (file_exists("../.git")) {
+				print("Development GIT version found skiping downloading kloxo sources");
+			} else {
+				@ unlink("/usr/local/lxlabs/kloxo/kloxo-current.zip");
+				print("Downloading latest Kloxo release\n");
+				system("wget {$downloadserver}download/kloxo/production/kloxo/kloxo-current.zip");	
+			}
+			
 		}
 	}
 
@@ -188,7 +193,7 @@ function lxins_main()
 	system("unzip -oq kloxo-current.zip", $return);
 
 	if ($return) {
-		print("Unzipping the core Failed.. Most likely it is corrupted. Report it at http://forum.lxcenter.org/\n");
+		print("Unzipping the core Failed.. Most likely it is corrupted. Report it at http://community.lxcenter.org/\n");
 		exit;
 	}
 
@@ -208,7 +213,11 @@ function lxins_main()
 
 	file_put_contents("/etc/sysconfig/spamassassin", "SPAMDOPTIONS=\" -v -d -p 783 -u lxpopuser\"");
 	print("\nCreating Vpopmail database...\n");
-	system("sh $dir_name/kloxo-linux/vpop.sh $dbroot \"$dbpass\" lxpopuser $mypass");
+	if (file_exists("/usr/local/lxlabs/kloxo-install/kloxo-linux")) {
+		system("sh $dir_name/kloxo-linux/vpop.sh $dbroot \"$dbpass\" lxpopuser $mypass");
+	} else {
+		system("sh $dir_name/vpop.sh $dbroot \"$dbpass\" lxpopuser $mypass");	
+	}
 	system("chmod -R 755 /var/log/httpd/");
 	system("chmod -R 755 /var/log/httpd/fpcgisock >/dev/null 2>&1");
 	system("mkdir -p /var/log/kloxo/");
@@ -302,6 +311,8 @@ function installcomp_mail() {
 	system("pear upgrade --force Archive_Tar"); // force is needed
 	system("pear upgrade --force structures_graph"); // force is needed
 	system("pear install log");
+    system("pear upgrade --force --alldeps"); // force is needed, update all what is possible.
+    print ("You can ignore the above warnings from PEAR.");
 }
 
 function install_main() {
@@ -368,6 +379,12 @@ function install_main() {
 	if (!preg_match("+$pattern+i", $cont)) {
 		file_put_contents($options_file, "$example_options\n");
 	}
+
+	$pattern = 'include "/etc/global.options.named.conf";';
+	$file = "/var/named/chroot/etc/named.conf";
+	$comment = "//Kloxo global config (stop being open recursors)";
+	addLineIfNotExist($file, $pattern, $comment);
+
 
 	$pattern = 'include "/etc/kloxo.named.conf";';
 	$file = "/var/named/chroot/etc/named.conf";

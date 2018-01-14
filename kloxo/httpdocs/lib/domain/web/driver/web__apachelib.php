@@ -1,5 +1,11 @@
 <?php 
 
+#
+# Project Issue #735
+# DT10022014
+# Removed all \n lines from <virtualhost> creation.
+#
+
 class web__apache extends lxDriverClass {
 
 //######################################### SyncToSystem Starts Here
@@ -151,7 +157,7 @@ function createVirtualHostiplist($port)
 		foreach($this->main->__var_domainipaddress as $ip => $dom) {
 			if ($this->main->nname !== $dom) { continue; }
 
-			$string .= "\t{$ip}:{$port}\\\n";
+			$string .= "{$ip}:{$port} ";
 		}
 
 		return $string;
@@ -160,7 +166,7 @@ function createVirtualHostiplist($port)
 	$iplist = os_get_allips();
 
 	foreach($iplist as $ip) {
-		$string .= "\t{$ip}:{$port}\\\n";
+		$string .= "{$ip}:{$port} ";
 	}
 
 	return $string;
@@ -173,7 +179,7 @@ static function staticcreateVirtualHostiplist($port)
 	$iplist = os_get_allips();
 
 	foreach($iplist as $ip) {
-		$string .= "\t{$ip}:{$port}\\\n";
+		$string .= "{$ip}:{$port} ";
 	}
 
 	return $string;
@@ -368,14 +374,14 @@ function createConffile()
 		$this->clearDomainIpAddress();
 
 		$string  = null;
-		$string .= "<VirtualHost \\\n";
+		$string .= "<VirtualHost ";
 		$string .= $this->createVirtualHostiplist("80");
 
 		if (!$this->getServerIp()) {
 			$string .= $this->createVirtualHostiplist("443");
 		}
 
-		$string .= "\t\t>\n\n";
+		$string .= ">\n";
 		
 		$syncto = $this->syncToPort("80", $cust_log, $err_log);
 
@@ -417,9 +423,9 @@ function createConffile()
 					$string .= "\n#### ssl virtualhost per ip {$ip} start\n";
 					$ssl_cert = $this->sslsysnc($ip);
 					if (!$ssl_cert) { continue; }
-					$string .= "<VirtualHost \\\n";
-					$string .= "\t$ip:443\\\n";
-					$string .= "\t\t>\n\n";
+					$string .= "<VirtualHost ";
+					$string .= "$ip:443";
+					$string .= ">\n";
 
 					$syncto = $this->syncToPort("443", $cust_log, $err_log);
 
@@ -448,9 +454,9 @@ function createConffile()
 				$exclusiveip = true;
 
 				// --- for better appear
-				$string = str_replace("\t", "||||", $string);
-				$string = str_replace("\n", "\n\t", $string);
-				$string = str_replace("||||", "\t", $string);
+			//	$string = str_replace("\t", "||||", $string);
+			//	$string = str_replace("\n", "\n\t", $string);
+			//	$string = str_replace("||||", "\t", $string);
 
 				$string2 = "\n\n<IfModule mod_ssl.c>\n{$string}\n</IfModule>\n\n\n";
 
@@ -561,11 +567,11 @@ function setAddon()
 
 	foreach((array) $vaddonlist as $v) {
 		if ($v->ttype === 'redirect') {
-			$string .= "<VirtualHost \\\n{$this->createVirtualHostiplist("80")}";
+			$string .= "<VirtualHost {$this->createVirtualHostiplist("80")}";
 			$string .= "{$this->createVirtualHostiplist("443")}";
-			$string .= "\t\t>\n\n";
+			$string .= ">\n";
 			$string .= "\tServerName {$v->nname}\n";
-			$string .= "\tServerAlias \\\n\t\twww.{$v->nname}\n\n";
+			$string .= "\tServerAlias www.{$v->nname}\n";
 			$dst = "{$this->main->nname}/{$v->destinationdir}/";
 			$dst = remove_extra_slash($dst);
 			$string .= "\tRedirect / \"http://{$dst}\"\n\n";
@@ -587,8 +593,8 @@ function setAddon()
 	}
 
 	if ($this->main->isOn('force_www_redirect')) {
-		$string .= "<VirtualHost \\\n{$this->createVirtualHostiplist("80")}";
-		$string .= "\t\t>\n\n";
+		$string .= "<VirtualHost {$this->createVirtualHostiplist("80")}";
+		$string .= ">\n\n";
 		$string .= "\tServerName {$this->main->nname}\n\n";
 		$string .= "\tRedirect / \"http://www.{$this->main->nname}/\"\n\n";
 		$string .= "</VirtualHost>\n\n";
@@ -607,19 +613,19 @@ static function createCpConfig()
 {
 	global $gbl, $sgbl, $login, $ghtml; 
 
-	$vstring = self::staticcreateVirtualHostiplist('80');
-	$sstring = self::staticcreateVirtualHostiplist('443');
+	$vstring = self::staticcreateVirtualHostiplist('80') . " ";
+	$sstring = self::staticcreateVirtualHostiplist('443') . " ";
 
 	$list = array("default" => "_default.conf", "cp" => "cp_config.conf", "disable" => "disable.conf");
 
 	foreach($list as $config => $file) {
 		$string = null;
-		$string .= "<VirtualHost \\\n";
+		$string .= "<VirtualHost ";
 		$string .= $vstring;
 		$string .= $sstring; 
-		$string .= "\t\t>\n\n";
+		$string .= ">\n\n";
 		$string .= "\tServerName {$config}\n";
-		$string .= "\tServerAlias {$config}.*\n\n";
+		$string .= "\tServerAlias {$config}.*\n";
 		$string .= "\tDocumentRoot \"/home/kloxo/httpd/{$config}/\"\n\n";
 
 		if ($config === "default") {
@@ -652,7 +658,7 @@ static function getVipString()
 	$iplist = os_get_allips();
 
 	foreach($iplist as $ip) {
-		$vstring[] = "\t{$ip}:80\\\n\t{$ip}:443\\\n";
+		$vstring[] = "{$ip}:80 {$ip}:443";
 	}
 
 	$vstring = implode("", $vstring);
@@ -678,8 +684,8 @@ static function getCreateWebmail($list, $isdisabled = null)
 			continue;
 		}
 
-		$string .= "<VirtualHost \\\n{$vstring}";
-		$string .= "\t\t>\n\n";
+		$string .= "<VirtualHost {$vstring}";
+		$string .= ">\n\n";
 		$string .= "\tServerName webmail.{$l['nname']}\n\n";
 
 		if ($rlflag === 'remote') {
@@ -761,9 +767,9 @@ static function createSSlConf($iplist, $domainiplist)
 			}
 		}
 
-		$string .= "\n\t<Virtualhost \\\n";
-		$string .= "\t\t{$ip['ipaddr']}:443\\\n";
-		$string .= "\t\t\t>\n\n";
+		$string .= "\n\t<Virtualhost ";
+		$string .= "{$ip['ipaddr']}:443";
+		$string .= ">\n\n";
 		$ssl_cert = sslcert::getSslCertnameFromIP($ip['nname']);
 
 		$ssl_root = $sgbl->__path_ssl_root;
@@ -1097,7 +1103,9 @@ function syncToPort($port, $cust_log, $err_log)
 		$rednname = remove_extra_slash("/{$red->nname}");
 
 		if ($red->ttype === 'local') {
-			$string .= "\tAlias \"{$rednname}\" \"{$user_home}\"/{$red->redirect}\"\n";
+			// dkstiler changing for issue 1004 according to williams response
+			//$string .= "\tAlias \"{$rednname}\" \"{$user_home}\"/{$red->redirect}\"\n";
+			$string .= "\tAlias \"{$rednname}\" \"{$user_home}/{$red->redirect}\"\n";
 		} else {
 			if (!redirect_a::checkForPort($port, $red->httporssl)) { continue; }
 
@@ -1178,6 +1186,40 @@ function syncToPort($port, $cust_log, $err_log)
 	return $string;
 }
 
+function createSuexec()
+{
+global $gbl, $sgbl, $login, $ghtml;
+
+$string = null;
+
+$uid = os_get_uid_from_user($this->main->username);
+$gid = os_get_gid_from_user($this->main->username);
+
+$phprc = null;
+$phprc .= "export PHPRC=/home/httpd/{$this->main->nname}\n";
+
+$string .= "#!/bin/sh\n";
+$string .= "### Username: {$this->main->username}\n";
+$string .= "export MUID={$uid}\n";
+$string .= "export GID={$gid}\n";
+$string .= $phprc;
+$string .= "export TARGET=<%program%>\n";
+$string .= "export NON_RESIDENT=1\n";
+$string .= "exec lxsuexec \$*\n";
+
+$st = str_replace("<%program%>", "/usr/bin/php-cgi", $string);
+lfile_put_contents("{$sgbl->__path_httpd_root}/{$this->main->nname}/phpsuexec.sh", $st);
+$st = str_replace("<%program%>", "/usr/bin/lxexec", $string);
+lfile_put_contents("{$sgbl->__path_httpd_root}/{$this->main->nname}/shsuexec.sh", $st);
+
+$st = str_replace("<%program%>", "/usr/bin/perl", $string);
+lfile_put_contents("{$sgbl->__path_httpd_root}/{$this->main->nname}/perlsuexec.sh", $st);
+
+lxfile_unix_chmod("{$sgbl->__path_httpd_root}/{$this->main->nname}/shsuexec.sh", "0755");
+lxfile_unix_chmod("{$sgbl->__path_httpd_root}/{$this->main->nname}/phpsuexec.sh", "0755");
+lxfile_unix_chmod("{$sgbl->__path_httpd_root}/{$this->main->nname}/perlsuexec.sh", "0755");
+}
+
 function getRailsConf($app)
 {
 	global $gbl, $sgbl, $login, $ghtml;
@@ -1234,13 +1276,13 @@ function createServerAliasLine()
 	if ($this->main->isOn('force_www_redirect')) {
 		$string .= "\tServerAlias ";
 	} else {
-		$string .= "\tServerAlias \\\n\t\twww.{$this->main->nname}";
+		$string .= "\tServerAlias www.{$this->main->nname}";
 	}
 	foreach($this->main->server_alias_a as $val) {
 		// MR -- issue 674 - wildcard and subdomain problem
 		if ($val->nname === '*') { continue; }
 
-		$string .= "\\\n\t\t{$val->nname}.{$this->main->nname}";
+		$string .= " {$val->nname}.{$this->main->nname}";
 	}
 
 	foreach((array) $this->main->__var_addonlist as $d) {
@@ -1248,7 +1290,7 @@ function createServerAliasLine()
 			continue;
 		}
 
-		$string .= "\\\n\t\t{$d->nname}\\\n\t\twww.{$d->nname}";
+		$string .= " {$d->nname} www.{$d->nname}";
 	}
 
 	$string .= "\n\n";
@@ -1349,10 +1391,10 @@ static function createWebmailConfig()
 	}
 
 	$webdata  = null;
-	$webdata .= "<VirtualHost \\\n";
-	$webdata .= self::staticcreateVirtualHostiplist("80");
-	$webdata .= self::staticcreateVirtualHostiplist("443");
-	$webdata .= "\t\t>\n\n";
+	$webdata .= "<VirtualHost ";
+	$webdata .= self::staticcreateVirtualHostiplist("80") . " ";
+	$webdata .= self::staticcreateVirtualHostiplist("443") . " ";
+	$webdata .= ">\n\n";
 	$webdata .= "\tServerName webmail\n";
 	$webdata .= "\tServerAlias webmail.*\n\n";
 	$webdata .= "\tDocumentRoot \"{$sgbl->__path_kloxo_httpd_root}/webmail/{$webmaildefpath}\"\n\n";
@@ -1431,11 +1473,10 @@ function fullUpdate()
 	self::createSSlConf($this->main->__var_ipssllist, $this->main->__var_domainipaddress);
 
 	$this->createConffile();
-//	$this->updateMainConfFile();
 
-//	self::createWebDefaultConfig();
+	// Removed recursive
+	lxfile_unix_chown("{$droot}/", "{$uname}:{$uname}");
 
-	lxfile_unix_chown_rec("{$droot}/", "{$uname}:{$uname}");
 	lxfile_unix_chmod("{$droot}/", "0755");
 	lxfile_unix_chmod("{$droot}", "0755");
 	lxfile_unix_chown("{$hroot}/{$domname}", "{$uname}:apache");

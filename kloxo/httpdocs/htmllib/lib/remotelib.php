@@ -401,6 +401,7 @@ function send_to_some_stream_server($type, $size, $raddress, $var, $fd)
 
 	if ($socket <= 0) {
 		if ($raddress === 'localhost' && !WindowsOs() && !$sgbl->isDebug()) {
+			//20140131 OA: dont reenable this, Ive just removed.
 			//lxshell_background("/usr/sbin/lxrestart", $sgbl->__var_program_name);
 			throw new lxException('no_socket_connect_to_server', '', $raddress);
 			throw new lxException('restarting_backend', '', $raddress);
@@ -876,6 +877,8 @@ function do_local_action($rmt)
 			class_exists($class);
 		}
 		// ---
+		// Since php 5.3 this wont take NULL
+		if(!$rmt->arglist)$rmt->arglist=array();
 		return call_user_func_array($rmt->func, $rmt->arglist);
 
 	}

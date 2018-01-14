@@ -196,3 +196,17 @@ $__information['webserver_config'] =
 // Language Content for #656
 // by Andrew Ying
 $__emessage['document_root_may_not_contain_spaces'] = "The document root may not contain any space at the end or before the slash. Please check and submit again.";
+
+// LxCenter - DT30012014
+$__emessage['forwardaddress cannot be empty'] = 'The forward-to address cannot be empty.';
+$__emessage['forwardaddress invaild'] = 'The forward-to address is invalid.';
+$__emessage['folder_name_may_not_contain_doubledotsslash'] = "Folder name must not contain ../ (double dots).";
+$__emessage['command_not_allowd'] = "Command not allowed! (You only have privilege to run 'php' or 'wget' in cron.)";
+
+// 6.1.19
+$__information['click_to_update_all_under']="Click Here to Update all the objects that appear in the top selectbox with the above values";
+// File manager mod
+$__emessage['file_bad_owner_logged']="Tried to access file not owned by user. Incident has been logged.";
+
+// LxCenter - DT20022014 - Kloxo 6.1.18
+$__information['scavenge_info_pre'] ="[b]What is Scavenge Time.[/b]<br /><br />Scavenge runs once every 24 hours and updates quota's, traffic counters and more.<br />Select the time that fits with you.<br/>Note: When the fields are empty the default is 03:35";

@@ -1,5 +1,68 @@
 Changelog
 
+Kloxo 6.1.19 - 22-mar-2014
+##################################
+Bug #519: Spamdyke On Additional Smtp Port affects also primary port
+Bug #781: Upgrade slave fails
+Bug #900: post_max_size is definied two times in php.ini.temp
+Bug #941: Forgot Password in Kloxo doesn't work
+Bug #992: wrong package installing tinydns
+Bug #994: Apache optimization causes crashing hold
+Bug #1098: Client file manager - No files
+Bug #788: Partial fix for pure-ftpd
+Enhancement #1099: Improvement GUI (part 1)
+
+Kloxo 6.1.18 - 23-feb-2014
+##################################
+Bug #863: Adding parked/redirected domain breaks Apache config
+Bug #1091: [UPCP] Kloxo versions with number 2 are not showed
+Bug #1096: Could not resolve host name
+Feature #295: Kloxo logrotate
+Security #1069: Any client can gain access to other clients home folder
+Enhancement #1097: Improved Scavenge
+
+Kloxo 6.1.17 - 18-feb-2014
+##################################
+Bug #804: XCache deleted
+Bug #982: Clicking PHP icon causes yum -y install xcache to be runned in background
+Bug #1084: [Cleanup] Remove Horde error messages.
+Bug #1085: [Installer] PEAR channel seems broken
+Enhancement #1088: Implement theme packages
+Enhancement #1095: Improve XCache functions
+
+Kloxo 6.1.16 - 10-feb-2014
+##################################
+Bug #735: [apache/conf] httpd does not start --> _default.conf | cp_config.conf | disable.conf | webmail.conf
+Bug #999: Spamdyke prompts for password during Kloxo installation
+Bug #1086: [GUI] "--Select One--" fails
+
+Kloxo 6.1.15 - 05-feb-2014
+##################################
+Bug #949: New IP file in /var/tinydns/env is incorrect
+Bug #1083: Kloxo 6.1.14 not installing
+Security #1082: Cron shell disable
+
+Kloxo 6.1.14 - 04-feb-2014
+##################################
+Security #1079: [GUI] Implement new PHP Core
+Enhancement #1080: PHP 5.3+ Compatibility fixes
+Security #1081: Removed lxrestart tool
+
+Kloxo 6.1.13 - 30-jan-2014
+##################################
+Security fixes
+- file manager fix
+- sql injection fix
+
+Kloxo 6.1.12 - 03-mar-2012
+##################################
+Bug #925: Advanced PHP Config page shows empty input fields
+Bug #926: 6.1.11 writes empty ipaddr into apache conf files, causing apache to fail.
+
+Kloxo 6.1.11 - 23-feb-2012
+##################################
+Security hotfix-2012-2: Prevent Web injection
+
 Kloxo 6.1.10 - 07-dec-2011
 ##################################
 Bug #330: Blocking user shouldn't block access to panel by default

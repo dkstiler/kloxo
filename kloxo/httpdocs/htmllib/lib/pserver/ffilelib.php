@@ -306,7 +306,11 @@ function updateDownload($param)
 		$ob = new Remote();
 		$ob->filepass = $ret;
 		$var = base64_encode(serialize($ob));
-		$url = "http://$url:{$sgbl->__var_prog_port}/htmllib/lbin/filedownload.php?frm_info=$var";
+                // New browser security wont let you open http link from a https site. 
+                if(isset($_SERVER['HTTPS']))
+                	$protocol =  $_SERVER['HTTPS'] == 'on' ? 'https' : 'http';
+		else $protocol= 'http';   
+		$url = "$protocol://$url:{$sgbl->__var_prog_port}/htmllib/lbin/filedownload.php?frm_info=$var";
 		header("Location: $url");
 		//$ghtml->print_redirect($url);
 		exit;
@@ -582,8 +586,14 @@ function updatePerm($param)
 
 function updateNewDir($param)
 {
-	global $gbl, $sgbl, $login, $ghtml; 
-	$this->setUpdateSubaction('newdir');
+	global $gbl, $sgbl, $login, $ghtml;
+
+// LxCenter - DT30012014
+   if (strpos($param['newfolder_f'], '../') !== false) {
+     throw new lxexception("folder_name_may_not_contain_doubledotsslash", '', '');
+   }
+   
+ 	$this->setUpdateSubaction('newdir');
 	$this->newfolder_f = $param['newfolder_f'];
 	$gbl->__this_redirect = $this->getDirUrl($this->nname);
 	return null;
@@ -1216,7 +1226,8 @@ function getCore()
 
 static function initThisList($parent, $class)
 {
-
+        global $login;
+        
 
 	$fpathp = $parent->fullpath;
 
@@ -1244,6 +1255,11 @@ static function initThisList($parent, $class)
 		if (!isset($parent->ffile_l)) {
 			$parent->ffile_l = null;
 		}
+                
+                // dont show other users files
+                $p = posix_getpwuid($stat['uid']);
+                if( $p['name'] != $parent->__username_o && !$login->isAdmin()) continue;
+                		
 		$parent->ffile_l[$file] = new Ffile($parent->__masterserver, $parent->__readserver,  $parent->root, $file, $parent->__username_o);
 		$parent->ffile_l[$file]->setFromArray($stat);
 		$parent->ffile_l[$file]->__parent_o = $parent->getParentO();
