@@ -107,7 +107,7 @@ function createExtraVariables()
 }
 
 
-static function  createListNlist($parent)
+static function  createListNlist($parent, $view)
 {
 	//$nlist["nname"] = "5%";
 	//$nlist["minute"] = "5%";
@@ -147,6 +147,7 @@ function updateform($subaction, $param)
 		$this->setUpdateSubaction();
 		$this->write();
 	}
+	
 
 	if ($this->isSimple()) {
 		$vlist['simple_cron'] = array('M', $this->simple_cron);
@@ -332,7 +333,29 @@ static function add($parent, $class, $param)
 		$param['syncserver'] = $parent->syncserver;
 	}
 */
+
 	$parambase = implode("_", array($param['username'], $param['command']));
+
+        if ( !$parent->priv->isOn('cron_shell_flag')) {
+                if (substr($param['command'], 0, 5 ) === "wget ") {
+                    $escarg = escapeshellarg(substr($param['command'], 5));
+                    $param['command'] = 'wget ' . $escarg;
+                }
+                else if (substr($param['command'], 0, 4 ) === "php ") {
+                    $escarg = escapeshellarg(substr($param['command'], 4));
+                    $param['command'] = 'php ' . $escarg;
+                }
+                else if (substr($param['command'], 0, 19 ) === "/usr/local/bin/php ") {
+                    $escarg = escapeshellarg(substr($param['command'], 19));
+                    $param['command'] = 'php ' . $escarg;
+                }
+                else {
+                	$param['command'] = 'bad';
+                        throw new lxException ("command_not_allowd", '', '');
+                }
+        }
+        
+	
 	$parambase = fix_nname_to_be_variable($parambase);
 	$cronlist = $parent->getList('cron');
 	$count = 0;

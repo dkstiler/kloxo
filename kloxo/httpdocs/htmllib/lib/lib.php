@@ -652,7 +652,7 @@ function PrepareRoundCubeDb()
 
 	$result = mysql_query("CREATE DATABASE IF NOT EXISTS roundcubemail", $link);
 	if (!$result) {
-		log_cleanup("- ***** There is something REALLY wrong... Go to http://forum.lxcenter.org and report to the team *****");
+		log_cleanup("- ***** There is something REALLY wrong... Go to http://community.lxcenter.org and report to the team *****");
 		exit;
 	}
 
@@ -730,7 +730,7 @@ function PrepareHordeDb()
 
 	$result = mysql_query("CREATE DATABASE IF NOT EXISTS horde_groupware", $link);
 	if (!$result) {
-		log_cleanup("- ***** There is something REALLY wrong... Go to http://forum.lxcenter.org and report to the team *****");
+		log_cleanup("- ***** There is something REALLY wrong... Go to http://community.lxcenter.org and report to the team *****");
 		exit;
 	}
 
@@ -876,7 +876,7 @@ function validate_domain_name($name)
 		throw new lxException('add_without_www', 'nname');
 	}
 
-	if(!preg_match('/^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+(([a-z]{2,6})|(xn--[a-z0-9]{4,14}))$/i', $name)) {
+	if(!preg_match('/^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+(([a-z]{2,9})|(xn--[a-z0-9]{4,14}))$/i', $name)) {
 		throw new lxException('invalid_domain_name', 'nname');
 	}
 	
@@ -1331,7 +1331,7 @@ function do_actionlog($login, $object, $action, $subaction)
 function validate_email($email)
 {
 	$regexp = "/^([\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+\.)*[\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+@" .
-		"((((([a-z0-9]{1}[a-z0-9\-]{0,62}[a-z0-9]{1})|[a-z])\.)+[a-z]{2,6})|(\d{1,3}\.){3}\d{1,3}(\:\d{1,5})?)$/i";
+		"((((([a-z0-9]{1}[a-z0-9\-]{0,62}[a-z0-9]{1})|[a-z])\.)+[a-z]{2,9})|(\d{1,3}\.){3}\d{1,3}(\:\d{1,5})?)$/i";
 	if(!preg_match($regexp, $email)) {
 		return false;
 	}
@@ -2556,6 +2556,23 @@ function install_if_package_not_exist($name)
 	if ($ret) {
 		lxshell_return("yum", "-y", "install", $name);
 	}
+    return $ret;
+}
+
+// New function since Kloxo 6.1.14
+function replace_rpm_package($replace,$replacewith)
+{
+    $ret = lxshell_return("rpm", "-q", "yum-plugin-replace");
+    if ($ret)
+    {
+        lxshell_return("yum", "-y", "install", "yum-plugin-replace");
+    }
+
+    $ret = lxshell_return("rpm", "-q", $replacewith);
+    if ($ret) {
+        lxshell_return("yum", "-y", "replace", $replace, "--replace-with", $replacewith);
+    }
+    return $ret;
 }
 
 function curl_general_get($url)
@@ -2622,11 +2639,11 @@ function getFullVersionList($till = null)
 
 function getVersionList($till = null)
 {
+    // Project issue #1091
+    // Removed code that skipped every version with a number 2 in it.
+    // DT22022014
 	$list = getFullVersionList($till);
 	foreach($list as $k => $l) {
-		if (preg_match("/2$/", $l) && ($k !== count($list) -1 )) {
-			continue;
-		}
 		$nnlist[] = $l;
 	}
 	$nlist = $nnlist;
@@ -2811,7 +2828,7 @@ function download_and_print_file($server, $file)
 	curl_close($ch);
 }
 
-function get_title()
+function get_title($indexheader=false)
 {
 	global $gbl, $sgbl, $login, $ghtml; 
 
@@ -2839,11 +2856,17 @@ function get_title()
 	} else {
 		$enterprise = "Single Server";
 	}
-	if (file_exists(".svn")) {
-		$enterprise .= " Development";
+	if (file_exists('.git')) {
+		$enterprise .= ' Development';
 	}
-	$title = "$host $progname $enterprise $title" ;
-	return $title;
+
+    if ($indexheader) {
+        $title = "$progname $title $enterprise" ;
+        return $title;
+        } else {
+        $title = "$host $progname $enterprise $title" ;
+        return $title;
+    }
 }
 
 function send_mail_to_admin($subject, $message)
@@ -3979,8 +4002,12 @@ function addLineIfNotExistInside($filename, $pattern, $comment)
 
 function fix_all_mysql_root_password()
 {
+    global $gbl, $sgbl, $login, $ghtml;
+
+    // Function is Called from scavenge.php
 	$rs = get_all_pserver();
 	foreach($rs as $r) {
+        log_scavenge("- ".$r);
 		fix_mysql_root_password($r);
 	}
 }
@@ -4446,8 +4473,6 @@ function lxguard_main($clearflag = false)
 
 	get_total($list, $total);
 
-	//dprintr($list['192.168.1.11']);
-
 	dprint_r("Debug: Total: " . $total .  "\n");
 	$deny = get_deny_list($total);
 	$hdn = lfile_get_unserialize("$lxgpath/hostdeny.info");
@@ -4499,48 +4524,36 @@ function lxguard_save_hitlist($hl)
 	lxguard_main();
 }
 
-// --- move from kloxo/httpdocs/htmllib/lib/updatelib.php
-
+//
+// $nolog needs to be set else it will log to the Browser screen too.
+//
 function install_xcache($nolog = null)
 {
-	//--- issue 547 - xcache failed to install
-/*
-	return;
-	if (lxfile_exists("/etc/php.d/xcache.ini")) {
-		return;
-	}
-	if (lxfile_exists("/etc/php.d/xcache.noini")) {
-		return;
-	}
 
-	if (!lxfile_exists("../etc/flag/xcache_enabled.flg")) {
-		log_cleanup("- xcache flag not found, removing /etc/php.d/xcache.ini file");
-		lunlink("/etc/php.d/xcache.ini");
-	}
-*/
-	if (!$nolog) { log_cleanup("Install xcache if is not enabled"); }
- 
-	if (lxfile_exists("../etc/flag/xcache_enabled.flg")) {
-		if (!$nolog) { log_cleanup("- Enabled status"); }
-//		$ret = lxshell_return("php -m | grep -i xcache");
-//		$ret = system("rpm -q php-xcache | grep -i 'not installed'");
-		// --- can not use lxshell_return because always return 127
-		// --- return 0 (= false) mean not found 'not installed'
-		exec("rpm -q php-xcache | grep -i 'not installed'", $out, $ret);
-		if ($ret !== false) {
-			if (!$nolog) { log_cleanup("- Installing"); }
+	if (!$nolog) { log_cleanup("Checking for XCache..."); }
+
+    // Make sure the flagdir exists (It might missing that at slaves)
+    If (!lxfile_exists("/usr/local/lxlabs/kloxo/etc/flag")) {
+     lxfile_mkdir("/usr/local/lxlabs/kloxo/etc/flag");
+    }
+
+	if (lxfile_exists("/usr/local/lxlabs/kloxo/etc/flag/xcache_enabled.flg")) {
+		if (!$nolog) { log_cleanup("- XCache is enabled"); }
+
+        $ret = lxshell_return("rpm", "-q", "php-xcache");
+
+		if ($ret) {
+			if (!$nolog) { log_cleanup("- Installing XCache package"); }
 			lxshell_return("yum", "-y", "install", "php-xcache");
 		}
 		else {
-			if (!$nolog) { log_cleanup("- Already installed"); }
-		}		
-		// for customize?
-		lxfile_cp("../file/xcache.ini", "/etc/php.d/xcache.ini");
-	}
-	else {
-		lxshell_return("yum", "-y", "remove", "php-xcache");
-		if (!$nolog) { log_cleanup("- Disabled status"); }
-	}
+			if (!$nolog) { log_cleanup("- XCache is already installed"); }
+		}
+
+        // Copy XCache Template
+		lxfile_cp("/usr/local/lxlabs/kloxo/file/xcache.ini", "/etc/php.d/xcache.ini");
+        if (!$nolog) { log_cleanup("- XCache ini file is installed/recreated"); }
+    }
 
 }
 
@@ -4568,10 +4581,11 @@ function addcustomername()
 
 function fix_phpini()
 {
-	log_cleanup("Fix php.ini");
-	log_cleanup("- Fix process");
+	log_cleanup("Checking the php.ini file(s)");
 
 	lxshell_return("__path_php_path", "../bin/fix/fixphpini.php", "--server=localhost");
+    log_cleanup("- Re-created the php.ini file(s)");
+
 }
 
 function switchtoaliasnext()
@@ -5304,8 +5318,10 @@ function setFreshClam($nolog = null)
 		system("chkconfig freshclam on > /dev/null 2>&1");
 		system("/etc/init.d/freshclam start >/dev/null 2>&1");
 		if (!$nolog) { log_cleanup("- Enabled freshclam service"); }
-		lxfile_mv("{$path}/down", "{$path}/run");
-		lxfile_mv("{$path}/log/down", "{$path}/log/run");
+            if (file_exists("{$path}/down") || file_exists("{$path}/log/down")) {
+		    lxfile_mv("{$path}/down", "{$path}/run");
+		    lxfile_mv("{$path}/log/down", "{$path}/log/run");
+            }
 		system("svc -u {$path} {$path}/log > /dev/null 2>&1");
 	}
 
@@ -5486,7 +5502,9 @@ function setInitialPureftpConfig()
 		@lxfile_rm("/etc/xinetd.d/pure-ftpd");
 	}
 
-	if (!lxfile_exists("/etc/xinetd.d/pureftp")) {
+	// Config file remains original if it exists, adding || true will cause
+	// overwriting.
+	if (!lxfile_exists("/etc/xinetd.d/pureftp") || true) {
 		log_cleanup("- Install /etc/xinetd.d/pureftp TCP Wrapper file");
 		lxfile_cp("../file/xinetd.pureftp", "/etc/xinetd.d/pureftp");
 	}
@@ -5617,15 +5635,15 @@ function setInitialBinary()
 {
 
 	log_cleanup("Initialize Some Binary files");
-
-	if (!lxfile_exists("/usr/sbin/lxrestart")) {
+// OA: lxrestart is not used anywhere, no need to install it
+/*	if (!lxfile_exists("/usr/sbin/lxrestart")) {
 		log_cleanup("- Install lxrestart binary");
 		system("cp ../cexe/lxrestart /usr/sbin/");
 		system("chown root:root /usr/sbin/lxrestart");
 		system("chmod 755 /usr/sbin/lxrestart");
 		system("chmod ug+s /usr/sbin/lxrestart");
 	}
-
+*/
 	// issue #637 - Webmail sending problem and possibility solution
 	// change from copy to symlink
 	log_cleanup("- Add symlink for qmail-sendmail");
@@ -5656,7 +5674,7 @@ function setCheckPackages()
 	$list = array("maildrop-toaster", "spamdyke", "spamdyke-utils", "pure-ftpd",
 		"simscan-toaster", "webalizer", "php-mcrypt", "dos2unix",
 		"rrdtool", "xinetd", "lxjailshell", "php-xml", "libmhash",
-		"lxphp");
+		"kloxo-core-php", "kloxo-theme-default", "kloxo-theme-feather", "php-pear");
 		
 	foreach($list as $l) {
 		log_cleanup("- For {$l} package");
@@ -5759,6 +5777,11 @@ function setSomePermissions()
 function setInitialBind()
 {
 	log_cleanup("Initialize Kloxo bind config files");
+    $pattern = 'include "/etc/global.options.named.conf";';
+
+    $file = "/var/named/chroot/etc/named.conf";
+    $comment = "//Kloxo global config (stop being open recursors)";
+    addLineIfNotExist($file, $pattern, $comment);
 
 	if (!lxfile_exists("/var/named/chroot/etc/kloxo.named.conf")) {
 		log_cleanup("- Initialize process");
@@ -5768,6 +5791,21 @@ function setInitialBind()
 	else {
 		log_cleanup("- No need to initialize");
 	}
+}
+
+// Copied from the installer for setInitialBind function.
+function addLineIfNotExist($filename, $pattern, $comment) {
+    $cont = lfile_get_contents($filename);
+
+    if (!preg_match("+$pattern+i", $cont)) {
+        file_put_contents($filename, "\n$comment \n\n", FILE_APPEND);
+        file_put_contents($filename, $pattern, FILE_APPEND);
+        file_put_contents($filename, "\n\n\n", FILE_APPEND);
+    } else {
+        print("Pattern '$pattern' Already present in $filename\n");
+    }
+
+
 }
 
 function setExecuteCentos5Script()
@@ -5835,16 +5873,14 @@ function setSomeScript()
 
 function setInitialLogrotate()
 {
-	return; // Kloxo 6.2.0 (#295)
-	log_cleanup("Initialize logrotate");
-
-	if (lxfile_exists("/etc/logrotate.d/kloxo")) {
-		log_cleanup("- Initialize process");
-
-		if (lxfile_exists("../file/kloxo.logrotate")) {
-			lxfile_cp("../file/kloxo.logrotate", "/etc/logrotate.d/kloxo");
-		}
-	}
+    // Project #295
+    // Added kloxo 6.1.18
+    if (!lxfile_exists("/etc/logrotate.d/kloxo")) {
+        if (lxfile_exists("../file/kloxo.logrotate")) {
+            log_cleanup("Installing kloxo logrotate file");
+            lxfile_cp("../file/kloxo.logrotate", "/etc/logrotate.d/kloxo");
+        }
+    }
 }
 
 function restart_xinetd_for_pureftp()
@@ -6307,7 +6343,7 @@ function setUpdateConfigWithVersionCheck($list, $servertype = null)
 
 function updatecleanup()
 {
-	setPrepareKloxo();
+    setPrepareKloxo();
 
     // Fixes #303 and #304
 	installThirdparty();
@@ -6361,6 +6397,8 @@ function updatecleanup()
 	setCheckPackages();
 
 	copy_script();
+
+    uploadStatsLxCenter();
 
 	install_xcache();
 
@@ -6426,8 +6464,11 @@ function updatecleanup()
 	setInitialLogrotate();
 	
 	installRoundCube();
-	
-	installHorde();
+
+// DT17022014
+// Disable horde link as horde is not in use
+// Project issue #1084
+//	installHorde();
 
 	installChooser();
 
@@ -6442,13 +6483,46 @@ function updatecleanup()
 	installInstallApp();
 	setFreshClam();
 	changeMailSoftlimit();
+
+    updatePEARchannel();
+
+}
+
+
+function uploadStatsLxCenter()
+{
+
+    global $gbl, $sgbl, $login, $ghtml;
+    $thisversion = $sgbl->__ver_major_minor_release;
+    $collectIsAllowed = $sgbl->__var_programname_stats;
+
+    if ($collectIsAllowed === "yes") {
+    system("wget -q -O /dev/null http://stats.lxcenter.org/lxstat.php?version=" . trim($thisversion) . " &");
+    }
+}
+
+function updatePEARchannel()
+{
+    //
+    // Warning! CentOS 5 is shipped with php-pear version 1,4.9
+    // Most pear packages depends on php-pear version <= 1.8.0
+    // So there could be warnings and errors until php-pear is updated.
+    // These errors and warning can be ignored for now.
+    // DT13022014
+    //
+    // php-pear package is updated for CentOS 5. See Project issue #1092
+    // DT13022014
+    log_cleanup("Update PHP PEAR software");
+    system("pear channel-update pear.php.net"); // Updates the channel
+    system("pear upgrade-all"); // Updates the software
+    log_cleanup("- You can ignore warnings from PHP PEAR updates above.");
 }
 
 function setPrepareKloxo()
 {
 	log_cleanup("Prepare for Kloxo");
 
-	log_cleanup("- OS Create Kloxo init.d service file and copy core php.ini (lxphp)");
+	log_cleanup("- OS Create Kloxo init.d service file and copy core php.ini (kloxo-core-php)");
 	os_create_program_service();
 
 	log_cleanup("- OS Fix programroot path permissions");
@@ -6479,30 +6553,39 @@ function update_all_slave()
 
 }
 
-function findNextVersion($lastversion = null)
+/**
+ * Get a version list and see if a update is avaible
+ * Issue #781 - Update to the latest version instead one by one
+ * Added _ () for the future :)
+ *
+ * @param      string $LastVersion Not Used?
+ * @return     string    Returns zero or version number
+ * @author     Danny Terweij d.terweij@lxcenter.org
+ */
+function findNextVersion($lastVersion = null)
 {
-	global $gbl, $sgbl, $login, $ghtml; 
-	$thisversion = $sgbl->__ver_major_minor_release;
+    global $sgbl;
+    $thisVersion = $sgbl->__ver_major_minor_release;
+    $Upgrade = null;
+    $versionList = getVersionList($lastVersion);
+    print(_('Found version(s):'));
 
-	$upgrade = null;
-	$nlist = getVersionList($lastversion);
-	dprintr($nlist);
-	$k = 0;
-	print("Found version(s):");
-	foreach($nlist as $l) {
-		print(" $l");
-		if (version_cmp($thisversion, $l) === -1) {
-			$upgrade = $l;
-			break;
-		}
-		$k++;
-	}
-	print("\n");
-	if (!$upgrade) {
-		return 0;
-	}
-
-	print("Upgrading from $thisversion to $upgrade\n");
-	return $upgrade;
-
+    foreach ($versionList as $newVersion) {
+        print(' ' . $newVersion);
+    }
+    print(PHP_EOL);
+    if (version_cmp($thisVersion, $newVersion) === -1) {
+        $Upgrade = $newVersion;
+    }
+    if (version_cmp($thisVersion, $newVersion) === 1) {
+        unset($Upgrade);
+        print(_('Your version ') . $thisVersion . _(' is higher then ') . $newVersion . PHP_EOL);
+        print(_('Script aborted') . PHP_EOL);
+        exit;
+    }
+    if (!$Upgrade) {
+        return 0;
+    }
+    print(_('Upgrading from ') . $thisVersion . _(' to ') . $Upgrade . PHP_EOL);
+    return $Upgrade;
 }

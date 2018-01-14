@@ -345,7 +345,7 @@ function createShowAlist(&$alist, $subaction = null)
 
 
 
-function createShowAlistConfig(&$alist)
+function createShowAlistConfig(&$alist, $class=null)
 {
 	global $gbl, $sgbl, $login, $ghtml; 
 
@@ -1015,7 +1015,7 @@ static function continueForm($parent, $class, $param, $continueaction)
 			if (!$param['contactemail']) {
 				throw new lxexception("sending_welcome_needs_contactemail", array('contactemail', 'send_welcome_f'), '');
 			}
-			// accept to more contact mail - http://forum.lxcenter.org/index.php?t=msg&goto=89118
+			// accept to more contact mail - http://community.lxcenter.org/index.php?t=msg&goto=89118
 			$contact = implode(",", str_replace(" ", "", $param['contactemail']));
 			foreach($contact as $c) {
 				if (!validate_email($c)) {
@@ -1092,6 +1092,14 @@ static function addCommand($parent, $class, $p)
 
 function commandUpdate($subaction, $param)
 {
+	if_demo_throw_exception('info');
+	if (isset($param['cttype'])) {
+		if (!$this->isAdmin()) {
+			if ($this->getParentO()->isGt($param['cttype'])) {
+				throw new lxException("parent_doesnt_have_privileges", 'cttype', '');
+			}
+		}
+	}
 	switch($subaction) {
 		case "change_plan":
 			checkIfVariablesSetOr($param, $param, 'newresourceplan', array('resourceplan_name'));
